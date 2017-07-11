@@ -27,13 +27,14 @@
 #  SENTRY_ENABLE_EMAIL_REPLIES
 #  SENTRY_SMTP_HOSTNAME
 #  SENTRY_MAILGUN_API_KEY
-#  SENTRY_SINGLE_ORGANIZATION
+SENTRY_SINGLE_ORGANIZATION = True
 #  SENTRY_SECRET_KEY
 #  GITHUB_APP_ID
 #  GITHUB_API_SECRET
 #  BITBUCKET_CONSUMER_KEY
 #  BITBUCKET_CONSUMER_SECRET
 from sentry.conf.server import *  # NOQA
+from sentry.utils.types import Bool
 
 import os
 import os.path
@@ -84,7 +85,7 @@ SENTRY_USE_BIG_INTS = True
 
 # Instruct Sentry that this install intends to be run by a single organization
 # and thus various UI optimizations should be enabled.
-SENTRY_SINGLE_ORGANIZATION = env('SENTRY_SINGLE_ORGANIZATION', True)
+SENTRY_SINGLE_ORGANIZATION = Bool(env('SENTRY_SINGLE_ORGANIZATION', True))
 
 #########
 # Redis #
@@ -234,6 +235,10 @@ SENTRY_OPTIONS['filestore.options'] = {
 
 # If you're using a reverse SSL proxy, you should enable the X-Forwarded-Proto
 # header and set `SENTRY_USE_SSL=1`
+# Finally uncomment the following lines
+# SENTRY_OPTIONS['system.url-prefix'] = 'https://sentry.yourdomain.com'
+# USE_X_FORWARDED_HOST = True
+# SENTRY_USE_SSL = 1
 
 if env('SENTRY_USE_SSL', False):
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
@@ -304,3 +309,7 @@ if 'GITHUB_APP_ID' in os.environ:
 if 'BITBUCKET_CONSUMER_KEY' in os.environ:
     BITBUCKET_CONSUMER_KEY = env('BITBUCKET_CONSUMER_KEY')
     BITBUCKET_CONSUMER_SECRET = env('BITBUCKET_CONSUMER_SECRET')
+
+
+# Authentication settings
+SENTRY_FEATURES['auth:register'] = False
