@@ -6,88 +6,74 @@
 # See docs.getsentry.com/on-premise/server/ for full
 # instructions
 
-version: '2'
-services:
-  base:
-    build: .
-    restart: always
-    environment:
-      # Run `docker-compose run web config generate-secret-key`
-      # to get the SENTRY_SECRET_KEY value.
-      # SENTRY_SECRET_KEY: ''
-      SENTRY_MEMCACHED_HOST: memcached
-      SENTRY_REDIS_HOST: redis
-      SENTRY_POSTGRES_HOST: postgres
-      SENTRY_EMAIL_HOST: smtp
-    volumes:
-      - "sentry-data:/var/lib/sentry/files"
-    networks:
-      - main-tier
+version: '3.4'
 
+x-defaults: &defaults
+  restart: unless-stopped
+  build: .
+  depends_on:
+    - redis
+    - postgres
+    - memcached
+    - smtp
+  env_file: .env
+  environment:
+    SENTRY_MEMCACHED_HOST: memcached
+    SENTRY_REDIS_HOST: redis
+    SENTRY_POSTGRES_HOST: postgres
+    SENTRY_EMAIL_HOST: smtp
+  volumes:
+    - sentry-data:/var/lib/sentry/files
+  networks:
+    - main-tier
+
+
+services:
   smtp:
+    restart: unless-stopped
     image: tianon/exim4
     restart: always
     networks:
       - main-tier
 
   memcached:
-    image: memcached:1.4
-    restart: always
+    restart: unless-stopped
+    image: memcached:1.5-alpine
     networks:
       - main-tier
 
   redis:
+    restart: unless-stopped
     image: redis:3.2-alpine
     restart: always
     networks:
       - main-tier
 
   postgres:
+    restart: unless-stopped
     image: postgres:9.5
     restart: always
     volumes:
-      - "postgres-data:/var/lib/postgresql/data"
+      - sentry-postgres:/var/lib/postgresql/data
     networks:
       - main-tier
 
   web:
-    extends: base
-    restart: always
-    depends_on:
-      - redis
-      - postgres
-      - memcached
-      - smtp
-    networks:
-      - main-tier
+    <<: *defaults
+    ports:
+      - '9000:9000'
 
   cron:
-    extends: base
+    <<: *defaults
     command: run cron
-    restart: always
-    depends_on:
-      - redis
-      - postgres
-      - memcached
-      - smtp
-    networks:
-      - main-tier
 
   worker:
-    extends: base
+    <<: *defaults
     command: run worker
-    restart: always
-    depends_on:
-      - redis
-      - postgres
-      - memcached
-      - smtp
-    networks:
-      - main-tier
 
   proxy:
     build: nginx
-    restart: always
+    restart: unless-stopped
     depends_on:
       - web
     ports:
@@ -98,14 +84,12 @@ services:
 
 
 volumes:
-  sentry-data:
-    external:
+    sentry-data:
+      external: true
       name: "${SENTRY_VOLUME}"
-
-  postgres-data:
-    external:
+    sentry-postgres:
+      external: true
       name: "${DB_VOLUME}"
-
 
 networks:
   main-tier:
